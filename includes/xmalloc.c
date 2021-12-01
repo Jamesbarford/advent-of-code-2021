@@ -25,24 +25,25 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "xmalloc.h"
 
 void *xmalloc(size_t size) {
-	void *m;
+    void *m;
 
-	if ((m = malloc(size)) == NULL) {
-		fprintf(stderr, "Failed to allocate memory %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    if ((m = malloc(size)) == NULL) {
+        fprintf(stderr, "Failed to allocate memory %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-	return m;
+    return m;
 }
 
 void xfree(void *m) {
-	if (m) free(m);
+    if (m)
+        free(m);
 }

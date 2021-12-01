@@ -31,37 +31,37 @@
 #include "hset.h"
 
 hset *hsetCreate() {
-	hset *hs;
+    hset *hs;
 
-	if ((hs = malloc(sizeof(hset))) == NULL)
-		return NULL;
+    if ((hs = malloc(sizeof(hset))) == NULL)
+        return NULL;
 
-	if ((hs->hm = hmapCreate()) == NULL) {
-		free(hs);
-		return 0;
-	}
+    if ((hs->hm = hmapCreate()) == NULL) {
+        free(hs);
+        return 0;
+    }
 
-	// A set does not need values
-	hs->hm->type->freevalue = NULL;
+    // A set does not need values
+    hs->hm->type->freevalue = NULL;
 
-	return hs;
+    return hs;
 }
 
 int hsetAdd(hset *hs, void *value) {
-	return hmapAdd(hs->hm, value, NULL);
+    return hmapAdd(hs->hm, value, NULL);
 }
 
 int hsetHas(hset *hs, void *value) {
-	return hmapContains(hs->hm, value);
+    return hmapContains(hs->hm, value);
 }
 
 int hsetDelete(hset *hs, void *value) {
-	return hmapDelete(hs->hm, value);
+    return hmapDelete(hs->hm, value);
 }
 
 void hsetRelease(hset *hs) {
-	if (hs) {
-		hmapRelease(hs->hm);
-		free(hs);
-	}
+    if (hs) {
+        hmapRelease(hs->hm);
+        free(hs);
+    }
 }

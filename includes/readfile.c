@@ -33,15 +33,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "xmalloc.h"
 #include "readfile.h"
+#include "xmalloc.h"
 
 /**
  * read line into outbuf, outbuf must be big enough
  * to contain a line, up to max in size
  */
 int readline(char **ptr, char *outbuf, int max) {
-	int i = 0;
+    int i = 0;
     while (**ptr != '\n' && **ptr != '\0' && i++ < max)
         *outbuf++ = *(*ptr)++;
     *outbuf = '\0';
@@ -51,57 +51,58 @@ int readline(char **ptr, char *outbuf, int max) {
 }
 
 rFile *rFileRead(char *filename) {
-	int fd;
-	off_t filesize;
-	rFile *rf;
+    int fd;
+    off_t filesize;
+    rFile *rf;
 
-	rf = xmalloc(sizeof(rFile));
+    rf = xmalloc(sizeof(rFile));
 
-	if ((fd = open(filename, O_RDWR, 0666)) == -1) {
-		fprintf(stderr, "Failed to open(2) '%s' %s\n", filename, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    if ((fd = open(filename, O_RDWR, 0666)) == -1) {
+        fprintf(stderr, "Failed to open(2) '%s' %s\n", filename,
+                strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-	if ((filesize = lseek(fd, 0, SEEK_END)) == -1) {
-		fprintf(stderr, "Failed to lseek(2) %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    if ((filesize = lseek(fd, 0, SEEK_END)) == -1) {
+        fprintf(stderr, "Failed to lseek(2) %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-	rf->buf = xmalloc(sizeof(char) * filesize + 1);
-	rf->len = filesize;
-	
-	if (lseek(fd, 0, SEEK_SET) == -1) {
-		fprintf(stderr, "Failed to lseek(2) %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    rf->buf = xmalloc(sizeof(char) * filesize + 1);
+    rf->len = filesize;
 
-	if (read(fd, rf->buf, rf->len) != rf->len) {
-		fprintf(stderr, "Failed to read(2) %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+    if (lseek(fd, 0, SEEK_SET) == -1) {
+        fprintf(stderr, "Failed to lseek(2) %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-	rf->buf[rf->len] = '\0';
+    if (read(fd, rf->buf, rf->len) != rf->len) {
+        fprintf(stderr, "Failed to read(2) %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-	close(fd);
+    rf->buf[rf->len] = '\0';
 
-	return rf;
+    close(fd);
+
+    return rf;
 }
 
 void rFileRelease(rFile *rf) {
-	xfree(rf->buf);
-	xfree(rf);
+    xfree(rf->buf);
+    xfree(rf);
 }
 
 #ifdef TEST_READFILE
 int main(int argc, char **argv) {
-	rFile *rf;
+    rFile *rf;
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s <filename>\n", argv[1]);
-		exit(EXIT_FAILURE);
-	}
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <filename>\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
 
-	rf = rFileRead(argv[1]);
-	printf("%s\n", rf->buf);
+    rf = rFileRead(argv[1]);
+    printf("%s\n", rf->buf);
 }
 #endif
