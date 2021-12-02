@@ -5,7 +5,7 @@ OBJECTS := $(SOURCES:.c=.o)
 
 all: $(OBJECTS)
 
-./%.o: %.c
+%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
