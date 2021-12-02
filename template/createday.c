@@ -49,6 +49,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    dirname = argv[1];
     if (dirname == NULL) {
         fprintf(stderr, "--dirname must be defined\n");
         exit(EXIT_FAILURE);

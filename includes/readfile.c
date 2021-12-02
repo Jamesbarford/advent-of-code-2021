@@ -45,7 +45,9 @@ int readline(char **ptr, char *outbuf, int max) {
     while (**ptr != '\n' && **ptr != '\0' && i++ < max)
         *outbuf++ = *(*ptr)++;
     *outbuf = '\0';
-    if (**ptr == '\0' || i > max) return 0;
+    /* if we got to the end or if the max size is not big enough, exit*/
+    if (**ptr == '\0' || 
+            (**ptr!='\n' && **ptr != '\0')) return 0;
     (*ptr)++;
     return 1;
 }
