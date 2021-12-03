@@ -57,7 +57,6 @@ int main(void) {
             if (cur > prev) increases++;
         }
 
-        memset(tmp, 0, sizeof(tmp));
         tmpptr = tmp;
         prev = cur;
     }
