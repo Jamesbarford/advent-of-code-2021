@@ -44,7 +44,7 @@ void *xmalloc(size_t size) {
     return m;
 }
 
-void *xcalloc(size_t membersiz, size_t size) {
+void *xcalloc(size_t size, size_t membersiz) {
     void *m;
 
     if ((m = calloc(size, membersiz)) == NULL) {
