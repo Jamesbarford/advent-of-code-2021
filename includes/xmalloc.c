@@ -26,6 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include <errno.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +43,17 @@ void *xmalloc(size_t size) {
 
     return m;
 }
+
+void *xcalloc(size_t membersiz, size_t size) {
+    void *m;
+
+    if ((m = calloc(size, membersiz)) == NULL) {
+        fprintf(stderr, "Failed to allocate memory %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    return m;
+} 
 
 void xfree(void *m) {
     if (m)

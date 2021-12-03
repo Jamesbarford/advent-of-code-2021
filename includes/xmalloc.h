@@ -31,6 +31,7 @@
 #include <stddef.h>
 
 void *xmalloc(size_t size);
+void *xcalloc(size_t membersiz, size_t size);
 void xfree(void *m);
 
 #endif
