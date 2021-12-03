@@ -11,7 +11,7 @@ $(TARGET): ./main.c
 	$(CC) $(OBJECTS) $(CFLAGS) -o $@ $^
 
 $(ALTERNATIVE): ./alternative.c
-	$(CC) $(OBJECTS) $(CFLAGS) -o $@ $^ -lm
+	$(CC) $(OBJECTS) $(CFLAGS) -o $@ $^
 
 clean:
 	rm $(TARGET)
