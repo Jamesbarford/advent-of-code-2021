@@ -8,7 +8,7 @@
 #define DEL    1
 #define ACTIVE 0
 #define RUN_COMPLETE 1
-#define REMOVED 0
+#define REMOVED -1
 
 /**
  * To make life a bit simpler, we're going to use some simple
@@ -57,22 +57,13 @@ void vectorPrint(vector *v) {
 typedef struct matrix {
     unsigned int rows;
     unsigned int columns;
-    /**
-     * a row is an unsigned long, 64 bits
-     *
-     * This 'could' be:
-     * - An array of int (boring) and 5*5*sizeof(int) = 200 bytes
-     * - An array of char, as max val is 99, meaning 5*5*sizeof(char) = 25bytes
-     *   Also quite boring, though most space efficient
-     * - A long, 8 bytes, 8 * 5 = 40bytes. Not as space efficient, but more fun :)
-     */
-    unsigned long *entries;
+    char *entries;
 } matrix;
 
 matrix *matrixNew(unsigned int rows, unsigned int columns) {
     matrix *m;
     m = xmalloc(sizeof(matrix));
-    m->entries = xcalloc(columns, sizeof(unsigned long));
+    m->entries = xcalloc(columns * rows, sizeof(char));
     m->rows = rows;
     m->columns = columns;
     return m;
@@ -85,19 +76,8 @@ void matrixRelease(matrix *m) {
     }
 }
 
-/**
- * x is assumed to be 0..n
- * and we need bytes hence multiplying by 8; 0*8 = 0 byte 1 etc...
- */
-#define matrixGet(m, x, y)                                                     \
-    ((m)->entries[(y)] >> ((unsigned long)(x)*8ul) & 0xFF)
-
-#define matrixSet(m, x, y, n)                                                  \
-    ((m)->entries[(y)] |= ((unsigned long)(n) << ((unsigned long)x * 8ul)))
-
-#define matrixUnset(m, x, y)                                                   \
-    ((m)->entries[(y)] &=                                                      \
-        (~((1ul << ((8 * (x)) + 8)) - 1ul)) ^ ((1ul << ((x)*8)) - 1ul))
+#define matrixGet(m, x, y) ((m)->entries[(x) + (y) * (m)->columns])
+#define matrixSet(m, x, y, n) ((m)->entries[(x) + (y) * (m)->columns] = (n))
 
 void matrixPrint(matrix *m) {
     printf("rows: %u\n", m->rows);
@@ -124,10 +104,15 @@ void matrixPrint(matrix *m) {
 
 unsigned int matrixSum(matrix *bm) {
     unsigned int acc, x, y;
+    char val;
 
-    for (y = 0, acc = 0; y < bm->rows; ++y)
-        for (x = 0; x < bm->columns; ++x)
-           acc += matrixGet(bm, x, y);
+    for (y = 0, acc = 0; y < bm->rows; ++y) {
+        for (x = 0; x < bm->columns; ++x) {
+            val = matrixGet(bm, x, y);
+            if (val == REMOVED) continue;
+            acc += val;
+        }
+    }
 
     return acc;
 }
@@ -269,14 +254,12 @@ unsigned int problemGetBoardCount(char *buf, int offset) {
 /* Is there a column with all zeros? */
 int matixCheckColumns(matrix *m) {
     unsigned int x, y;
-    unsigned long shift;
     int run = 0;
 
     for (x = 0; x < m->columns; ++x) {
-        shift = ((unsigned long)x * 8ul) & 0xFF;
         run = 0;
         for (y = 0; y < m->rows; ++y) {
-            if ((int)((unsigned long)m->entries[y] >> shift) == REMOVED)
+            if (matrixGet(m, x, y) == REMOVED)
                 run++;
         }
         if (run == 5) return RUN_COMPLETE;
@@ -287,15 +270,13 @@ int matixCheckColumns(matrix *m) {
 
 /* Is there a row all zeros? */
 int matrixCheckRows(matrix *m) {
-    unsigned long row;
     unsigned int x, y;
     int run = 0;
 
     for (y = 0; y < m->rows; ++y) {
-        row = m->entries[y];
         run = 0;
         for (x = 0; x < m->columns; ++x)
-            if ((int)(row >> ((unsigned long)x * 8ul) & 0xFF) == REMOVED)
+            if (matrixGet(m, x, y) == REMOVED)
                 run++;
         if (run == 5) return RUN_COMPLETE;
     }
@@ -308,7 +289,7 @@ void matrixUnsetNumberOnMatch(matrix *m, int num) {
     for (unsigned int y = 0; y < m->rows; ++y)
         for (unsigned int x = 0; x < m->columns; ++x)
             if (num == (int)matrixGet(m, x, y))
-                matrixUnset(m, x, y);
+                matrixSet(m, x, y, REMOVED);
 }
 
 int main(void) {
