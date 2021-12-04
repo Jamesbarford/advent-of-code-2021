@@ -65,7 +65,7 @@ typedef struct matrix {
      * - An array of char, as max val is 99, meaning 5*5*sizeof(char) = 25bytes
      *   Also quite boring, though most space efficient
      * - A long, 8 bytes, 8 * 5 = 40bytes. Not as space efficient, but more fun :)
-     */
+     * */
     unsigned long *entries;
 } matrix;
 
@@ -215,7 +215,7 @@ matrix **problemGetBingoBoards(char *buf, int offset, unsigned int rows,
     int x, y;
 
     /* setup boards */
-    bm = xmalloc(sizeof(matrix) * board_count);
+    bm = xmalloc(sizeof(matrix *) * board_count);
     for (i = 0; i < board_count; ++i)
         bm[i] = matrixNew(rows, columns);
 
@@ -266,7 +266,6 @@ unsigned int problemGetBoardCount(char *buf, int offset) {
     return boardcount;
 }
 
-/* Is there a column with all zeros? */
 int matixCheckColumns(matrix *m) {
     unsigned int x, y;
     unsigned long shift;
@@ -285,7 +284,6 @@ int matixCheckColumns(matrix *m) {
     return run == 5;
 }
 
-/* Is there a row all zeros? */
 int matrixCheckRows(matrix *m) {
     unsigned long row;
     unsigned int x, y;
@@ -303,7 +301,7 @@ int matrixCheckRows(matrix *m) {
     return run == 5;
 }
 
-/* If there is a match on a number mark it as a -1 */
+/* If there is a match on a number mark it as 'REMOVED' */
 void matrixUnsetNumberOnMatch(matrix *m, int num) {
     for (unsigned int y = 0; y < m->rows; ++y)
         for (unsigned int x = 0; x < m->columns; ++x)
@@ -324,7 +322,7 @@ int main(void) {
     problemGetRowsAndColumns(rf->buf, first_line_len + 2, &rows, &columns,
                             &board_charlen);
     /* there is probably a smater way of doing this */
-    board_count = problemGetBoardCount(rf->buf, first_line_len+2);
+    board_count = problemGetBoardCount(rf->buf, first_line_len + 2);
     boards = problemGetBingoBoards(rf->buf, first_line_len + 2, rows, columns,
                         board_count);
 
