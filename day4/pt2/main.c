@@ -8,7 +8,7 @@
 #define DEL    1
 #define ACTIVE 0
 #define RUN_COMPLETE 1
-#define REMOVED 0
+#define REMOVED 101 // this is dreadful but the bingo bingo numbers only go upto 99
 
 /**
  * To make life a bit simpler, we're going to use some simple
@@ -57,22 +57,13 @@ void vectorPrint(vector *v) {
 typedef struct matrix {
     unsigned int rows;
     unsigned int columns;
-    /**
-     * a row is an unsigned long, 64 bits
-     *
-     * This 'could' be:
-     * - An array of int (boring) and 5*5*sizeof(int) = 200 bytes
-     * - An array of char, as max val is 99, meaning 5*5*sizeof(char) = 25bytes
-     *   Also quite boring, though most space efficient
-     * - A long, 8 bytes, 8 * 5 = 40bytes. Not as space efficient, but more fun :)
-     * */
-    unsigned long *entries;
+    char *entries;
 } matrix;
 
 matrix *matrixNew(unsigned int rows, unsigned int columns) {
     matrix *m;
     m = xmalloc(sizeof(matrix));
-    m->entries = xcalloc(columns, sizeof(unsigned long));
+    m->entries = xcalloc(columns * rows, sizeof(char));
     m->rows = rows;
     m->columns = columns;
     return m;
@@ -85,19 +76,8 @@ void matrixRelease(matrix *m) {
     }
 }
 
-/**
- * x is assumed to be 0..n
- * and we need bytes hence multiplying by 8; 0*8 = 0 byte 1 etc...
- */
-#define matrixGet(m, x, y)                                                     \
-    ((m)->entries[(y)] >> ((unsigned long)(x)*8ul) & 0xFF)
-
-#define matrixSet(m, x, y, n)                                                  \
-    ((m)->entries[(y)] |= ((unsigned long)(n) << ((unsigned long)x * 8ul)))
-
-#define matrixUnset(m, x, y)                                                   \
-    ((m)->entries[(y)] &=                                                      \
-        (~((1ul << ((8 * (x)) + 8)) - 1ul)) ^ ((1ul << ((x)*8)) - 1ul))
+#define matrixGet(m, x, y) ((m)->entries[(x) + (y) * (m)->columns])
+#define matrixSet(m, x, y, n) ((m)->entries[(x) + (y) * (m)->columns] = (n))
 
 void matrixPrint(matrix *m) {
     printf("rows: %u\n", m->rows);
@@ -124,10 +104,15 @@ void matrixPrint(matrix *m) {
 
 unsigned int matrixSum(matrix *bm) {
     unsigned int acc, x, y;
+    int val;
 
-    for (y = 0, acc = 0; y < bm->rows; ++y)
-        for (x = 0; x < bm->columns; ++x)
-           acc += matrixGet(bm, x, y);
+    for (y = 0, acc = 0; y < bm->rows; ++y) {
+        for (x = 0; x < bm->columns; ++x) {
+            val = matrixGet(bm, x, y);
+            if (val == REMOVED) continue;
+            acc += val;
+        }
+    }
 
     return acc;
 }
@@ -215,7 +200,7 @@ matrix **problemGetBingoBoards(char *buf, int offset, unsigned int rows,
     int x, y;
 
     /* setup boards */
-    bm = xmalloc(sizeof(matrix *) * board_count);
+    bm = xmalloc(sizeof(matrix) * board_count);
     for (i = 0; i < board_count; ++i)
         bm[i] = matrixNew(rows, columns);
 
@@ -252,12 +237,11 @@ matrix **problemGetBingoBoards(char *buf, int offset, unsigned int rows,
     return bm;
 }
 
-
 unsigned int problemGetBoardCount(char *buf, int offset) {
     unsigned int boardcount;
     boardcount = 0;
 
-    for (char *ptr = buf+offset; *ptr != '\0'; ptr++) {
+    for (char *ptr = buf + offset; *ptr != '\0'; ptr++) {
         if (*ptr == '\n' && *(ptr + 1) == '\n') boardcount++; 
     }
 
@@ -266,16 +250,15 @@ unsigned int problemGetBoardCount(char *buf, int offset) {
     return boardcount;
 }
 
+/* Is there a column with all zeros? */
 int matixCheckColumns(matrix *m) {
     unsigned int x, y;
-    unsigned long shift;
     int run = 0;
 
     for (x = 0; x < m->columns; ++x) {
-        shift = ((unsigned long)x * 8ul) & 0xFF;
         run = 0;
         for (y = 0; y < m->rows; ++y) {
-            if ((int)((unsigned long)m->entries[y] >> shift) == REMOVED)
+            if (matrixGet(m, x, y) == REMOVED)
                 run++;
         }
         if (run == 5) return RUN_COMPLETE;
@@ -284,16 +267,15 @@ int matixCheckColumns(matrix *m) {
     return run == 5;
 }
 
+/* Is there a row all zeros? */
 int matrixCheckRows(matrix *m) {
-    unsigned long row;
     unsigned int x, y;
     int run = 0;
 
     for (y = 0; y < m->rows; ++y) {
-        row = m->entries[y];
         run = 0;
         for (x = 0; x < m->columns; ++x)
-            if ((int)(row >> ((unsigned long)x * 8ul) & 0xFF) == REMOVED)
+            if (matrixGet(m, x, y) == REMOVED)
                 run++;
         if (run == 5) return RUN_COMPLETE;
     }
@@ -305,48 +287,69 @@ int matrixCheckRows(matrix *m) {
 void matrixUnsetNumberOnMatch(matrix *m, int num) {
     for (unsigned int y = 0; y < m->rows; ++y)
         for (unsigned int x = 0; x < m->columns; ++x)
-            if (num == (int)matrixGet(m, x, y))
-                matrixUnset(m, x, y);
+            if (num == matrixGet(m, x, y))
+                matrixSet(m, x, y, REMOVED);
 }
 
 int main(void) {
     rFile *rf;
     vector *bingo_numbers;
     matrix **boards, *board;
-    unsigned int rows, columns, i;
-    int first_line_len, board_count, board_charlen, curnum, curboard, total;
+    char *deleted_boards;
+    unsigned int rows, columns, i, active_boards, total;
+    int first_line_len, board_count, board_charlen, curnum, curboard;
 
     rf =  rFileRead("../input.txt");
 
     bingo_numbers = problemGetBingoNumbers(rf->buf, &first_line_len);
-    problemGetRowsAndColumns(rf->buf, first_line_len + 2, &rows, &columns,
-                            &board_charlen);
+    problemGetRowsAndColumns(rf->buf, first_line_len + 2, &rows, &columns, &board_charlen);
+
     /* there is probably a smater way of doing this */
-    board_count = problemGetBoardCount(rf->buf, first_line_len + 2);
+    board_count = problemGetBoardCount(rf->buf, first_line_len+2);
     boards = problemGetBingoBoards(rf->buf, first_line_len + 2, rows, columns,
                         board_count);
 
     curboard = 0;
     curnum = 0;
 
+    /* keep track of what boards are active and what are dead */
+    deleted_boards = xcalloc(board_count, sizeof(char));
+    active_boards = board_count;
+
     for (i = 0; i < bingo_numbers->len; ++i) {
         curnum = bingo_numbers->entries[i];
         for (curboard = 0; curboard < board_count; ++curboard)
             matrixUnsetNumberOnMatch(boards[curboard], curnum);
 
+        /**
+         * - If board is marked as deleted, skip
+         * - See if Rows are all marked
+         * OR
+         * - See if Columns are all marked
+         * - if the are flag the board as removed and decrement the number of active boards
+         *
+         * Mark a deleted board in 'deleted_boards'
+         */
         for (curboard = 0; curboard < board_count; ++curboard) {
             board = boards[curboard];
-            if (matrixCheckRows(board) == RUN_COMPLETE)
-                goto out;
+            if (deleted_boards[curboard] == 1) continue;
 
-            if (matixCheckColumns(board) == RUN_COMPLETE)
-               goto out;
+            if (matrixCheckRows(board) == RUN_COMPLETE) {
+                deleted_boards[curboard] = 1;
+                active_boards--;
+            } else if (matixCheckColumns(board) == RUN_COMPLETE) {
+                deleted_boards[curboard] = 1;
+                active_boards--;
+            }
+
+            /* We've removed the final board so can exit these loops */
+            if (active_boards == 0) goto answer;
         }
     }
 
-out:
+answer:
     total = matrixSum(boards[curboard]);
-    printf("%d\n", total * curnum);
+    printf("%u\n", total * curnum);
 
     vectorRelease(bingo_numbers);
     for (i = 0; i < (unsigned int)board_count; ++i)
