@@ -23,7 +23,7 @@ static char makefile[] = "TARGET  := solve.out\n"
 static char cprog[] = "#include <stdio.h>\n\n"
 "int main(void) {\n"
 "    printf(\"Hello world!\\n\");\n"
-"}\0";
+"}\n\0";
 
 /* a bit fragile but gets the job done */
 int recursiveMkdir(char *path, int perms, int *depth) {
