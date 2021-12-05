@@ -111,3 +111,4 @@ int main(void) {
     xfree(indexes);
     xfree(idxToChar);
 }
+

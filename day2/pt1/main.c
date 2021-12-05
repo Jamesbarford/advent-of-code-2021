@@ -55,3 +55,4 @@ int main(void) {
     printf("%d\n", ht[Depth] * ht[Horizontal]);
     rFileRelease(rf);
 }
+
