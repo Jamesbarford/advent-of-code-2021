@@ -1,0 +1,18 @@
+1: cf      -> 2
+7: acf     -> 3
+4: bcdf    -> 4
+8: abcdefg -> 7
+
+Advance past the -> | count how many 2,4,3,7 char combos there are.
+Done.
+
+[0]
+[1]
+[2]
+[3]
+[4]
+[5]
+[6]
+[7]
+[8]
+[9]
