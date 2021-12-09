@@ -1,3 +1,6 @@
+/**
+ * I could have made life eassier and used a bitset
+ */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -281,22 +284,6 @@ int listRemoveFromIdx(list *l, int idx) {
     return ERR;
 }
 
-unsigned long listSum(list *l) {
-    unsigned long acc = 0ul;
-    listNode *ln = l->head;
-
-    while (ln) {
-        if (ln->value != NULL) {
-            unsigned long sl = atoll(ln->value);
-            printf("%ld\n", sl);
-            acc +=sl;
-        }
-        ln = ln->next;
-    }
-
-    return acc;
-}
-
 int dictInsertThree(dict *d, list *l) {
     int idx = 0;
     listNode *ln = l->head;
@@ -502,10 +489,12 @@ unsigned long solveProblem(char *buf) {
                 tmpint[0], tmpint[1], tmpint[2], tmpint[3]);
         tmp[tmplen] = '\0';
         acc += atol(tmp);
-        dictEntriesRelease(d);
-        d = dictNew();
-        l = listNew();
-        ptr++;
+        dictRelease(d);
+        if (*ptr != '\0') {
+            d = dictNew();
+            l = listNew();
+            ptr++;
+        }
     }
     return acc;
 }
