@@ -86,158 +86,6 @@ void vectorPrint(vector *v) {
     printf("]\n");
 }
 
-unsigned long toXY(char x, char y) {
-    unsigned long xy = 0;
-    xy |= x;
-    xy |= (unsigned long)y << 8ul;
-    return xy;
-}
-
-#define getX(xy) ((xy) & 0xFF)
-#define getY(xy) (((xy) >> 8ul) & 0xFF)
-
-struct setEntry;
-typedef struct setEntry {
-    unsigned long value; // an OR of x,y;
-    struct setEntry *next;
-} setEntry;
-
-typedef struct set {
-    int size;
-    int mask;
-    setEntry **entries;
-} set;
-
-set *setNew(void) {
-    set *s;
-    s = xmalloc(sizeof(set));
-    s->size = 0;
-    s->mask = SETSIZ - 1;
-    s->entries = xcalloc(SETSIZ, sizeof(setEntry *));
-    return s;
-}
-
-setEntry *setEntryNew(unsigned int value) {
-    setEntry *se;
-    se = xmalloc(sizeof(setEntry));
-    se->value = value;
-    se->next = NULL;
-    return se;
-}
-
-setEntry *setFind(set *s, unsigned int value) {
-    int idx = s->mask & value;
-    setEntry *se = s->entries[idx];
-
-    while (se) {
-        if (se->value == value) return se;
-        se = se->next;
-    }
-
-    return NULL;
-}
-
-int setContains(set *s, unsigned int value) {
-    return setFind(s, value) != NULL;
-}
-
-void setAdd(set *s, unsigned int value) {
-    int idx = s->mask & value;
-    setEntry *se = setEntryNew(value);
-
-    if (s->entries[idx] != NULL) {
-        // if it exists do nothing
-        if (setFind(s, value) != NULL) return;
-        else { // install in the set
-            se->next = s->entries[idx];
-            s->entries[idx] = se->next;
-        }
-    } else {
-        se->next = s->entries[idx];
-        s->entries[idx] = se;
-    }
-    s->size++;
-}
-
-void setRemove(set *s, unsigned int value) {
-    unsigned int idx = value & s->mask;
-    setEntry *se = s->entries[idx], *prev = NULL;
-
-    while (se) {
-        if (se->value == value) {
-            if (prev) prev->next = se->next;
-            else s->entries[idx] = se->next;
-            s->size--;
-            xfree(se);
-            return;
-        }
-        se = se->next;
-    }
-}
-
-void setReleaseEntries(set *s) {
-    if (s->size == 0) return;
-    setEntry *se, *cur, *next;
-
-    for (int i = 0; i < SETSIZ; ++i) {
-        if ((se = s->entries[i]) != NULL) {
-            if (se->next != NULL) {
-                cur = se->next;
-
-                while (cur) {
-                    next = cur->next;
-                    xfree(cur);
-                    cur = next;
-                }
-            }
-            xfree(se);
-        }
-    }
-}
-
-void setRelease(set *s) {
-    setReleaseEntries(s);
-    xfree(s);
-}
-
-void setPrint(set *s) {
-    setEntry *se;
-    printf("{\n");
-    for (int i = 0; i < SETSIZ; ++i) {
-        if ((se = s->entries[i]) != NULL) {
-            printf("  [%i] => %ld\n",i, se->value);
-            if (se->next != NULL) {
-                while (se) {
-                    printf("  [%i] => %ld\n",i, se->value);
-                    se = se->next;
-                }
-            }
-        }
-    }
-    printf("}\n");
-}
-
-unsigned int setGetLargest(set *s) {
-    unsigned int largest = 0;
-    setEntry *se;
-
-    for (int i = 0; i < SETSIZ; ++i) {
-        if ((se = s->entries[i]) != NULL) {
-            if (se->value > largest)
-                largest = se->value;
-            if (se->next != NULL) {
-                while (se) {
-                    if (se->value > largest)
-                        largest = se->value;
-                    se = se->next;
-                }
-            }
-        }
-    } 
-
-    return largest;
-}
-
 typedef struct dictInt {
     int entries[DICTSIZ];
 } dictInt;
@@ -499,34 +347,32 @@ dictInt *solveProblemOne(matrix *m) {
     return d;
 }
 
-void floodfill(char x, char y, set *s, matrix *m) {
-    unsigned long xy = toXY(x, y);
+void floodfill(char x, char y, matrix *m, int *acc) {
     if (x < 0 || x >= m->columns) return;
     if (y < 0 || y >= m->rows) return;
     if (matrixGet(m, x, y) == 9) return;
     matrixSet(m, x, y, 9);
-    setAdd(s, xy);
-    floodfill(x + 1, y, s, m);
-    floodfill(x - 1, y, s, m);
-    floodfill(x, y + 1, s, m);
-    floodfill(x, y - 1, s, m);
+    (*acc)++;
+    floodfill(x + 1, y, m, acc);
+    floodfill(x - 1, y, m, acc);
+    floodfill(x, y + 1, m, acc);
+    floodfill(x, y - 1, m, acc);
 }
 
 vector *solveProblemTwo(matrix *m) {
     int issmallest;
-    set *s = NULL;
     vector *v = vectorNew();
     enum CoordType coord;
+    int acc;
 
     for (int y = 0; y < m->rows; ++y) {
         for (int x = 0; x < m->columns; ++x) {
             coord = getCoord(m, x, y);
             issmallest = isSmallestIdx(m, coord, x, y);
             if (issmallest) {
-                s = setNew();
-                floodfill(x, y, s, m);
-                vectorPush(v, s->size);
-                setRelease(s);
+                acc = 0;
+                floodfill(x, y, m, &acc);
+                vectorPush(v,acc);
             }
         }
     }
