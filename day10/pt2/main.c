@@ -27,6 +27,11 @@ vector *vectorNew(void) {
     return v;
 }
 
+void vectorRelease(vector *v) {
+    xfree(v->entries);
+    xfree(v);
+}
+
 void vectorPush(vector *v, unsigned long num) {
     v->entries[v->len++] = num;
 }
@@ -184,6 +189,7 @@ vector *solveProblemTwo(char *buf) {
         }
         if (handleList(l, *ptr) == ERR) is_row_err = 1;
     }
+    listRelease(l);
     return v;
 }
 
@@ -194,5 +200,6 @@ int main(void) {
 
     printf("%ld\n", scores->entries[scores->len/2]);
 
+    vectorRelease(scores);
     rFileRelease(rf);
 }

@@ -126,6 +126,7 @@ unsigned int solveProblemOne(char *buf) {
             }
         }
     }
+    listRelease(l);
     return acc;
 }
 
