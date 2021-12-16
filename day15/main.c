@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../includes/readfile.h"
 #include "../includes/xmalloc.h"
@@ -50,7 +52,7 @@ void matrixRelease(matrix *m) {
 void matrixprint(matrix *m) {
     for (int y = 0; y < m->rows; ++y) {
         for (int x = 0; x < m->columns; ++x)
-            printf("%2d ", m->entries[x + y * m->columns]);
+            printf("%d", m->entries[x + y * m->columns]);
         printf("\n");
     }
     printf("\n");
@@ -134,8 +136,8 @@ typedef struct heap {
     void **entries;
 } heap;
 #define heapParent(p) ((int)(((p)-1) / 2))
-#define heapLeft(p)   (((p)*2) + 1)
-#define heapRight(p)  (((p)*2) + 2)
+#define heapLeft(p) (((p)*2) + 1)
+#define heapRight(p) (((p)*2) + 2)
 
 heap *heapNew(int (*cmp)(void *, void *), void (*freeValue)(void *)) {
     heap *h;
@@ -180,7 +182,7 @@ void *heapRemove(heap *hp) {
     if ((hp->size - 1) > 0)
         hp->size--;
     else {
-        hp->size=0;
+        hp->size = 0;
         return hn;
     }
 
@@ -195,7 +197,8 @@ void *heapRemove(heap *hp) {
 
         if (lpos < hp->size &&
                 // this might be wrong
-                hp->cmp(hp->entries[lpos], hp->entries[ipos]) > 0) {
+                hp->cmp(hp->entries[lpos], hp->entries[ipos]) > 0)
+        {
             mpos = lpos;
         } else {
             mpos = ipos;
@@ -205,7 +208,8 @@ void *heapRemove(heap *hp) {
                 hp->cmp(hp->entries[rpos], hp->entries[mpos]) > 0)
             mpos = rpos;
 
-        if (mpos == ipos) break;
+        if (mpos == ipos)
+            break;
         tmp = hp->entries[mpos];
         hp->entries[mpos] = hp->entries[ipos];
         hp->entries[ipos] = tmp;
@@ -216,7 +220,7 @@ void *heapRemove(heap *hp) {
 
 void heapPrint(heap *h) {
     for (int i = 0; i < h->size; ++i) {
-        if (h->entries[i])
+        if (h->entries[i] && h->print)
             h->print(h->entries[i]);
     }
 }
@@ -238,6 +242,7 @@ void getSuroundingNodes(matrix *m, int x, int y, int array[4]) {
     array[WEST] = matrixGet(m, x - 1, y);
 }
 
+
 int dijkstra(matrix *m) {
     int tmparray[4], total_risk, current_risk, weight, risk_matrix_value, x, y,
             shortest_path;
@@ -255,8 +260,7 @@ int dijkstra(matrix *m) {
         xfree(hn);
 
         // we're done!
-        if (x == m->columns - 1 && y == m->rows - 1)
-            break;
+        if (x == m->columns - 1 && y == m->rows - 1) break;
 
         getSuroundingNodes(m, x, y, tmparray);
         risk_matrix_value = matrixGet(total_risk_matrix, x, y);
@@ -266,26 +270,26 @@ int dijkstra(matrix *m) {
             if ((weight = tmparray[i]) == -1)
                 continue;
             switch (i) {
-            case NORTH: {
-                tmpx = x;
-                tmpy = y - 1;
-                break;
-            }
-            case SOUTH: {
-                tmpx = x;
-                tmpy = y + 1;
-                break;
-            }
-            case EAST: {
-                tmpx = x + 1;
-                tmpy = y;
-                break;
-            }
-            case WEST: {
-                tmpx = x - 1;
-                tmpy = y;
-                break;
-            }
+                case NORTH: {
+                    tmpx = x;
+                    tmpy = y - 1;
+                    break;
+                }
+                case SOUTH: {
+                    tmpx = x;
+                    tmpy = y + 1;
+                    break;
+                }
+                case EAST: {
+                    tmpx = x + 1;
+                    tmpy = y;
+                    break;
+                }
+                case WEST: {
+                    tmpx = x - 1;
+                    tmpy = y;
+                    break;
+                }
             }
 
             total_risk = risk_matrix_value + weight;
@@ -304,16 +308,43 @@ int dijkstra(matrix *m) {
     return shortest_path;
 }
 
-int weightBigger(heapNode *hn1, heapNode *hn2) {
-    if (hn1->weight >= hn2->weight)
-        return 1;
-    else
-        return -1;
+matrix *fiveXProblem(matrix *m) {
+    matrix *m5 = matrixNew(m->rows * 5, m->columns * 5);
+
+    for (int y = 0; y < m5->rows; ++y) {
+        for (int x = 0; x < m5->columns; ++x) {
+            matrixSet(m5, x, y,
+                    (matrixGet(m, x % m->columns, y % m->rows)
+                            + ((x / m->columns) + (y / m->rows)) - 1) %
+                                    9 + 1);
+        }
+    }
+
+    return m5;
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    if (argc == 1) {
+        fprintf(stderr, "Usage: %s <c1|c2>\n"
+                "c1: challenge 1 and c2: challenge2\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
     rFile *rf = rFileRead("./input.txt");
     matrix *m = problemToMatrix(rf->buf, rf->len);
-    int c1 = dijkstra(m);
-    printf("c1: %d\n", c1);
+
+    if (strncmp(argv[1], "c1", 2) == 0) {
+        printf("challenge1: %d\n", dijkstra(m));
+    } else if (strncmp(argv[1], "c2", 2) == 0) {
+        matrix *m5 = fiveXProblem(m);
+        printf("challenge2: %d\n", dijkstra(m5));
+        matrixRelease(m5);
+    } else {
+        fprintf(stderr, "Invalid option: \"%s\" valid options are c1 or c2",
+                argv[1]);
+        exit(EXIT_FAILURE);
+    }
+
+    rFileRelease(rf);
+    matrixRelease(m);
 }
