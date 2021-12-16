@@ -132,7 +132,7 @@ int weightcmp(heapNode *hn1, heapNode *hn2) {
 heap *heapNew(heapNodeCmp *compare) {
     heap *hp;
     hp = xmalloc(sizeof(heap));
-    hp->capacity = 1 << 16; // this should be more than big enough
+    hp->capacity = 1 << 30; // this should be more than big enough
     hp->entries = xcalloc(hp->capacity, sizeof(heapNode *));
     hp->size = 0;
     hp->compare = compare;
@@ -241,12 +241,10 @@ void getSuroundingNodes(matrix *m, int x, int y, int array[4]) {
 }
 
 int dijkstra(matrix *m) {
-    /* start at the end of the puzzle and work our way backwards */
     int tmparray[4], total_risk, current_risk, weight, risk_matrix_value, x, y,
             shortest_path;
     heapNode *hn = NULL;
     heap *queue = heapNew(weightcmp);
-    // rather than malloc individual nodes we can maintain a pool of nodes.
     matrix *total_risk_matrix = matrixNew(m->rows, m->columns);
 
     heapInsert(queue, heapNodeNew(matrixGet(m, 0, 0), 0, 0));
